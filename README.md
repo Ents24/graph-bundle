@@ -1,20 +1,19 @@
-HttpQuery Bundle
+AdadgioGraphBundle
 ====
 
-Set set of helper to pass HTTP complex queries and convert them easily to query repositories
+Awesome helpers to use a Neo4j database inside a Sf project. This does not replace doctrine entities but is aimed at syncing some entities
+with a graph database or making queries, retriveing nodes and relationships. It is *not a full ORM replacement* !
 
 ## Install
 
 Install with composer.
 
-`composer require adadgio/health-bundle`
+`composer require adadgio/graph-bundle`
 
 Make the following change to your `AppKernel.php` file to the registered bundles array.
 
 ```
-new Adadgio\HealthBundle\AdadgioHealthBundle(),
+new Adadgio\GraphBundle\AdadgioGraphBundle(),
 ```
 
 ## Components
-
-* Adadgio\HealthBundle\Component\CIM10Code
