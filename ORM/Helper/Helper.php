@@ -89,7 +89,7 @@ class Helper
             return array('-', '-');
         }
     }
-
+    
     /**
      * Removes the "MATCH" keyword from a string and trims spaces
      *
@@ -100,7 +100,7 @@ class Helper
     {
         return trim(str_replace('MATCH', '', $str));
     }
-    
+
     /**
      * Create a property/value pair notation string and escapes/quotes the value.
      *

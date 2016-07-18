@@ -233,7 +233,7 @@ class Cypher
         // when a new pattern is needed at a precise index, otherwise
         // matches are chained because they belong to the same pattern
         $list = array();
-
+        
         foreach ($matches as $index => $match) {
             $word = (true === $match['optional']) ? 'OPTIONAL MATCH' : 'MATCH';
 
@@ -244,7 +244,7 @@ class Cypher
                 $list[] = array(Helper::COMMA, $match['stmt']);
             }
         }
-        
+
         return 'MATCH'.Helper::SPACE.Helper::subvalImplode($list);
     }
 

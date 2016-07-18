@@ -50,9 +50,13 @@ class Neo4jManager
      *
      * @return array Query result
      */
-    public function getResult()
+    public function getResult($alias = null)
     {
-        return $this->result;
+        if (null === $alias) {
+            return $this->result;
+        } else {
+            return isset($this->result[$alias]) ? $this->result[$alias] : array();
+        }
     }
 
     /**
@@ -93,7 +97,7 @@ class Neo4jManager
 
         return $this;
     }
-
+    
     /**
      * Analyse a cypher query result set. There are two types of results
      * to analyze, node results of field results because "MATCH a" or
@@ -105,53 +109,45 @@ class Neo4jManager
     public function parse(\Everyman\Neo4j\Query\ResultSet $resultSet)
     {
         $result = array();
-        foreach ($resultSet as $i => $row) {
+        $columnSets = $this->getColumnSets($resultSet->getColumns());
 
-            if ($row instanceof \Everyman\Neo4j\Query\Row) {
-                $result[$i] = array();
-                // depending on the return statement rows can be everyman \Node object or
-                // simple scalar results that depend on selected fields from the return statement
-                // information about what is selected is also available in the \Row "columns" property
+        foreach ($columnSets as $setName => $fields) {
+            $result[$setName] = array();
+
+            foreach ($resultSet as $i => $row) {
+                $result[$setName][$i] = array();
 
                 foreach ($row as $property => $objectOrScalar) {
+                    $info = $this->extractFieldInfo($property);
 
-                    // each row is iterable, but when nodes are selected, value is a \Node object and
-                    // when fields are selected in the return statement, then props and values are scalar
+                    if ($info['set'] !== $setName) {
+                        continue;
+                    }
+
                     if ($objectOrScalar instanceof \Everyman\Neo4j\Node) {
-                        // corresponds to "RETURN a", and prop is "a", value is a \Node object
-                        // $result[$prop] = $value;
-                        // so loop through all node properties
-                        //$result[$i][$prop] = $this->objectOrScalarToValue($objectOrScalar);
+
                         foreach ($objectOrScalar->getProperties() as $prop => $value) {
-
-                            // in case you select labels, value can still be a \Row object
-                            $result[$i][$prop] = $this->objectOrScalarToValue($value);
-
+                            $result[$setName][$i][$prop] = $value;
                         }
 
                     } else {
-                        // corresponds to a "RETRURN a.id, a.name...", prop is "a.id", value is the scalar value
-                        $result[$i][$property] = $this->objectOrScalarToValue($objectOrScalar);
-                        // if ($objectOrScalar instanceof \Everyman\Neo4j\Query\Row) {
-                        //     echo '<pre>';
-                        //     print_r($objectOrScalar);
-                        //     echo '</pre>';
-                        // } else {
-                        //
-                        // }
-
-
+                        // handle scalar values
+                        $result[$setName][$i][$info['field']] = $this->objectOrScalarToValue($objectOrScalar);
                     }
                 }
-            }
 
+            }
         }
 
-        return array_values($result);
+        return $result;
     }
-    
+
     /**
+     * Returns a scalar value of a row if applicable otherwise loop through the object
+     * values and sets the object property as an array containing those values (ex labels)
      *
+     * @param  mixed Scalar or everyman \Row object
+     * @return mixed Scalar or array object final value
      */
     private function objectOrScalarToValue($objectOrScalar)
     {
@@ -171,6 +167,72 @@ class Neo4jManager
             } else {
                 return $objectOrScalar;
             }
+        }
+    }
+
+    /**
+     * Return description of columns selected (sets) and their
+     * respective fields selection if applicable.
+     *
+     * @param  array Columns as given by everyman result set object
+     * @return array Set(s) column map description
+     */
+    private function getColumnSets(array $columns)
+    {
+        $sets = array();
+        $typeA = '~([a-z0-9_]+)\.([a-z0-9_]+)~i'; // "a.id"
+        $typeB = '~([a-z0-9_]+)\(([a-z0-9_]+)\)~'; // "labels(a)"
+
+        foreach ($columns as $col) {
+
+            $info = $this->extractFieldInfo($col);
+
+            $setName = $info['set'];
+            $fieldName = $info['field'];
+
+            if (!isset($sets[$setName])) {
+                $sets[$setName] = array();
+            }
+
+            $sets[$setName][] = $fieldName;
+        }
+
+        return $sets;
+    }
+
+    /**
+     * Guesses to which node set a field belongs to and return both the node set
+     * and the real field name "a.id" belgons to "a", and field is "id", and "labels(a)" or
+     * "id(a)" belong to set "a" and fields are "$labels" and "$id" (real reserved neo4j properties)
+     *
+     * @param
+     * @return
+     */
+    private function extractFieldInfo($field)
+    {
+        $typeA = '~([a-z0-9_]+)\.([a-z0-9_]+)~i'; // "a.id"
+        $typeB = '~([a-z0-9_]+)\(([a-z0-9_]+)\)~'; // "labels(a)"
+
+        if (preg_match($typeA, $field, $m)) {
+
+            // "a.id" selection type
+            $node = $m[1];
+            $field = $m[2];
+
+            return array('set' => $node, 'field' => $field);
+
+        } else if (preg_match($typeB, $field, $m)) {
+
+            // "labels(a)" selection type
+            $node = $m[2];
+            $field = $m[1];
+
+            return array('set' => $node, 'field' => '$'.$field);
+
+        } else {
+            // "a" selection type
+            $node = $field;
+            return array('set' => $node, 'field' => $node);
         }
     }
 }
