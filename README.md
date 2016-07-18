@@ -1,8 +1,8 @@
 AdadgioGraphBundle
 ====
 
-Awesome helpers to use a Neo4j database inside a Sf project. This does not replace doctrine entities but is aimed at syncing some entities
-with a graph database or making queries, retriveing nodes and relationships. It is *not a full ORM replacement* !
+Awesome helpers to use a Neo4j database inside a Symfony2 (or 3) project. This does not replace doctrine entities but is aimed at syncing some entities
+with a graph database or making queries, retrieving nodes and relationships. It is *not a full ORM replacement* !
 
 ## Install
 
@@ -16,9 +16,9 @@ Make the following change to your `AppKernel.php` file to the registered bundles
 new Adadgio\GraphBundle\AdadgioGraphBundle(),
 ```
 
-## Components
+## Usage
 
-## Queries, cypher and manager
+## Cypher and query builder
 
 ```php
 use Adadgio\GraphBundle\ORM\Cypher;
@@ -49,7 +49,7 @@ print_r(manager->getResult('b'));
 
 ```
 
-## Queries, cypher and manager
+## Queries and transactions
 
 When doing transactions, no result set is available from the manager
 
@@ -67,4 +67,4 @@ $manager = $this
     ->transaction(array($cypherA, $cypherB));
 ```
 
-## Creating merge/create/set queries qit
+## Creating, setting, merging and deleting
