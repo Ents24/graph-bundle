@@ -49,7 +49,7 @@ class EntityEventListener
         $entity = $args->getEntity();
         $this->onUpdateOrPersist($entity);
     }
-    
+
     /**
      * Executes a neo4j query to sync the entity properties in the graph.
      *
@@ -60,7 +60,7 @@ class EntityEventListener
     {
         $classAnnotations = GraphAnnotationReader::getClassAnnotations($entity);
         $propertyAnnotations = GraphAnnotationReader::getPropertyAnnotations($entity);
-
+        
         // defined the entity labels in the graph, properties and merge by criteria
         $properties = array();
         $labels = $classAnnotations->getProperty('labels');
