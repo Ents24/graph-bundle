@@ -18,7 +18,7 @@ new Adadgio\GraphBundle\AdadgioGraphBundle(),
 
 ## Components
 
-## Queries, query builder and manager
+## Queries, cypher and manager
 
 ```php
 use Adadgio\GraphBundle\ORM\Cypher;
@@ -44,7 +44,27 @@ print_r(manager->getResult());
 // result set for "a" nodes
 print_r(manager->getResult('a'));
 
-// result set for "a" nodes
+// result set for "b" nodes
 print_r(manager->getResult('b'));
 
 ```
+
+## Queries, cypher and manager
+
+When doing transactions, no result set is available from the manager
+
+```php
+$cypherA = (new Cypher())
+    ->match('a', 'Document', array('id' => 389))
+    ->set('a', array('name' => 'The good, the bad and the ugly'));
+
+$cypherB = (new Cypher())
+    ->match('a', 'Document', array('id' => 390))
+    ->set('a', array('name' => 'The good, the bad and the ugly'));
+
+$manager = $this
+    ->get('adadgio_graph.neo4j_manager')
+    ->transaction(array($cypherA, $cypherB));
+```
+
+## Creating merge/create/set queries qit
