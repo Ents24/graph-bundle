@@ -47,6 +47,21 @@ print_r(manager->getResult('a'));
 // result set for "b" nodes
 print_r(manager->getResult('b'));
 
+// trying queries with relationships constraints (and passing string to manager instead of object)
+$queryString = (new Cypher())
+    ->match('a', 'Countries', array('id' => 5))
+    ->newPattern()
+    ->match('b', ':City:Town')
+        ->relatedWith('a')
+        ->by('r', 'IS_IN', array('max' => 3), '->')
+    ->newPattern()
+    ->match('a')
+    ->getQuery();
+
+$manager = $this
+    ->get('adadgio_graph.neo4j_manager')
+    ->cypher($queryString);
+
 ```
 
 ## Queries and transactions
