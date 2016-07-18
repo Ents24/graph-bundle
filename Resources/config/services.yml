@@ -1,1 +1,4 @@
 services:
+    adadgio_graph.neo4j_manager:
+        class: Adadgio\GraphBundle\ORM\Neo4jManager
+        arguments: [ %adadgio_graph.connection% ]
