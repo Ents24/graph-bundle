@@ -16,7 +16,7 @@ Make the following change to your `AppKernel.php` file to the registered bundles
 new Adadgio\GraphBundle\AdadgioGraphBundle(),
 ```
 
-## Usage
+# Usage
 
 ## Cypher and query builder
 
