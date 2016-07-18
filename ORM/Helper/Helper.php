@@ -43,6 +43,17 @@ class Helper
     }
 
     /**
+     * Joins and array if string statements with commas.
+     *
+     * @param array
+     * @return string
+     */
+    public static function joinWithCommas(array $strings = array())
+    {
+        return implode(', ', $strings);
+    }
+
+    /**
      * Create a cypher property/value pairs pattern inside brackets such as "{id:5, name:'test'}".
      *
      * @param  array  Values indexed by properties
@@ -61,7 +72,19 @@ class Helper
     }
 
     /**
-     * "$a"
+     * Add an alias with "." dot in front of property name.
+     *
+     * @param  string Alias
+     * @param  string Property name
+     * @return string Aliased property
+     */
+    public static function addAlias($alias, $property)
+    {
+        return sprintf('%s.%s', $alias, $property);
+    }
+
+    /**
+     *
      */
     public function isVar($str)
     {
@@ -89,7 +112,7 @@ class Helper
             return array('-', '-');
         }
     }
-    
+
     /**
      * Removes the "MATCH" keyword from a string and trims spaces
      *
@@ -102,7 +125,7 @@ class Helper
     }
 
     /**
-     * Create a property/value pair notation string and escapes/quotes the value.
+     * Create a property/value pair notation string and escapes/quotes the value "prop: val".
      *
      * @param  string Property
      * @param  mixed Value
@@ -117,6 +140,24 @@ class Helper
         }
 
         return sprintf('%s: %s', $property, $value);
+    }
+
+    /**
+     * Create a property/value equality notation string and escapes/quotes the value "prop = val".
+     *
+     * @param  string Property
+     * @param  mixed Value
+     * @return string
+     */
+    public static function newPropertyValueEquality($property, $value)
+    {
+        if (is_numeric($value)) {
+            $value = (int) $value;
+        } else {
+            $value = static::quote($value);
+        }
+
+        return sprintf('%s = %s', $property, $value);
     }
 
     /**

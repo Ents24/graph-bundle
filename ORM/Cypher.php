@@ -33,6 +33,21 @@ class Cypher
     private $matches;
 
     /**
+     * @var array Merges, a multidimentional array of merges
+     */
+    private $merges;
+
+    /**
+     * @var array On create set clause for merges
+     */
+    private $onCreateSet;
+
+    /**
+     * @var array On update set clause for merges
+     */
+    private $onMatchSet;
+
+    /**
      * @var array Matches already declared to be reused.
      */
     private $variableMatches;
@@ -61,6 +76,9 @@ class Cypher
 
         $this->return = null;
         $this->matches = array();
+        $this->merges = array();
+        $this->onCreateSet = array();
+        $this->onMatchSet = array();
         $this->aliases = array();
         $this->variableMatches = array();
         $this->relationships = array();
@@ -87,9 +105,22 @@ class Cypher
     {
         $query = null;
 
-        // 1. Create matches query string
-        $query = $this->joinMatches($this->matches);
+        // 1. Create matches query string when applicable
+        if (!empty($this->matches)) {
+            $query = $this->joinMatches($this->matches);
+        }
 
+        // 3. Create merges query string when applicable
+        if (!empty($this->onCreateSet)) {
+            $query .= Helper::SPACE.$this->joinOnCreateOrUpdate($this->onCreateSet, 'ON CREATE');
+        }
+
+        // 4. Create merges query string when applicable
+        if (!empty($this->onMatchSet)) {
+            $query .= Helper::SPACE.$this->joinOnCreateOrUpdate($this->onMatchSet, 'ON MATCH');
+        }
+
+        // 7. Add return statement when applicable
         if (null !== $this->return) {
             $query .= $this->return;
         }
@@ -100,25 +131,37 @@ class Cypher
     }
 
     /**
+     * Add a merge statement.
+     *
+     * @param string Node variable alias
+     * @param string Labels notation ("A:B" or ":A:B")
+     */
+    public function merge($alias = null, $label = null, array $props = array())
+    {
+        return $this->match($alias, $label, $props, false, 'MERGE');
+    }
+
+    /**
      * Add a match or optional match statement.
      *
      * @param string Node variable alias
      * @param string Labels notation ("A:B" or ":A:B")
      */
-    public function match($alias = null, $label = null, array $props = array(), $optional = false)
+    public function match($alias = null, $label = null, array $props = array(), $optional = false, $keyword = 'MATCH')
     {
         // define which match type is to be performed
         // but also DONT include the "MATCH" keyword when not new subpattern
         // is declared. Cypher accepts MATCH (a), (b) OR MATCH (a) MATCH (b) as patterns
-        //$match = (true === $optional) ? 'OPTIONAL MATCH' : '';
+        $keyword = (true === $optional) ? 'OPTIONAL '.$keyword : $keyword;
 
         // an alias with this name could exist. In this case we assume this
         // is a reuse of the varialbe from a previous match or declration
         if ($this->aliasExists($alias)) {
             $this->matches[] = array(
-                'alias' => null, // $alias,
-                'stmt'  => sprintf('(%s)', $alias),
-                'optional' => $optional,
+                'keyword'   => $keyword,
+                'alias'     => null, // $alias,
+                'stmt'      => sprintf('(%s)', $alias),
+                'optional'  => $optional,
             );
             return $this;
 
@@ -135,9 +178,10 @@ class Cypher
 
         // any previous relationship must safely be marked as "false" (dont remove it not to break indexes)
         $this->matches[] = array(
-            'alias' => $alias,
-            'stmt'  =>  sprintf('(%s%s%s)', $alias, $label, $props),
-            'optional' => $optional,
+            'keyword'   => $keyword,
+            'alias'     => $alias,
+            'stmt'      =>  sprintf('(%s%s%s)', $alias, $label, $props),
+            'optional'  => $optional,
         );
 
         return $this;
@@ -151,7 +195,7 @@ class Cypher
      */
     public function optionalMatch($alias = null, $label = null, array $props = array())
     {
-        return $this->match($alias, $label, $props, true);
+        return $this->match($alias, $label, $props, true, 'MATCH');
     }
 
     /**
@@ -163,8 +207,6 @@ class Cypher
     {
         // register the alias
         $this->registerAlias($alias);
-        // $lastAlias = $this->lastAlias(); // equivalent of previousAlias($alias)
-        // debug($lastAlias);
 
         // set the formatted label string
         $label = (null === $label) ? null : Helper::COLON.Helper::trimColons($label);
@@ -190,8 +232,8 @@ class Cypher
      */
     public function by($alias = null, $type = null, array $props = array(), $direction = '-')
     {
-        // register the alias
-        $lastMatchIndex = $this->lastIndexOf($this->matches);
+        // find if we work on matches or merges
+        $lastIndex = $this->lastIndexOf($this->matches);
 
         // build a string of properties/values inside brackets
         $props = (null === Helper::newPropertiesPattern($props)) ? null : Helper::SPACE.Helper::newPropertiesPattern($props);
@@ -201,7 +243,7 @@ class Cypher
         $type = (null !== $type) ? ':'.$type : null;
 
         // concat the relationships string with the previous last match statement and set back relationship to null
-        $this->matches[$lastMatchIndex]['stmt'] = $this->matches[$lastMatchIndex]['stmt'].$dir[0]."[{$alias}{$type}{$props}]".$dir[1].$this->relationship['stmt'];
+        $this->matches[$lastIndex]['stmt'] = $this->matches[$lastIndex]['stmt'].$dir[0]."[{$alias}{$type}{$props}]".$dir[1].$this->relationship['stmt'];
         $this->relationship = null;
 
         return $this;
@@ -222,30 +264,73 @@ class Cypher
     }
 
     /**
+     * Add on create set clause for merges.
+     *
+     * @param
+     * @return object
+     */
+    public function onCreateSet($alias, array $properties)
+    {
+        foreach ($properties as $prop => $value) {
+            $prop = Helper::addAlias($alias, $prop);
+            $this->onCreateSet[] = Helper::newPropertyValueEquality($prop, $value);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Add on update set clause for merges.
+     *
+     * @param
+     * @return object
+     */
+    public function onMatchSet($alias, array $properties)
+    {
+        foreach ($properties as $prop => $value) {
+            $prop = Helper::addAlias($alias, $prop);
+            $this->onMatchSet[] = Helper::newPropertyValueEquality($prop, $value);
+        }
+
+        return $this;
+    }
+    
+    /**
      * Joins matches string that are groupped together depending
      * taking into account joined or new patterns as well.
      *
      * @return string
      */
-    private function joinMatches(array $matches)
+    private function joinMatches(array $clauses)
     {
         // matches are separated with commas only
         // when a new pattern is needed at a precise index, otherwise
         // matches are chained because they belong to the same pattern
         $list = array();
-        
-        foreach ($matches as $index => $match) {
-            $word = (true === $match['optional']) ? 'OPTIONAL MATCH' : 'MATCH';
+
+        foreach ($clauses as $index => $match) {
+            $keyword = $match['keyword'];
 
             // if a new pattern was declared at this position
             if (isset($this->newPatterns[$index])) {
-                $list[] = array(Helper::SPACE, $word.Helper::SPACE.$match['stmt']);
+                $list[] = array(Helper::SPACE, $keyword.Helper::SPACE.$match['stmt']);
             } else {
                 $list[] = array(Helper::COMMA, $match['stmt']);
             }
         }
 
-        return 'MATCH'.Helper::SPACE.Helper::subvalImplode($list);
+        return $clauses[0]['keyword'].Helper::SPACE.Helper::subvalImplode($list);
+    }
+
+    /**
+     * Joins matches string that are groupped together depending
+     * taking into account joined or new patterns as well.
+     *
+     * @return string
+     */
+    private function joinOnCreateOrUpdate(array $clauses, $onCreateOrUpdateKeyword)
+    {
+        return $onCreateOrUpdateKeyword.' SET'.Helper::SPACE.Helper::joinWithCommas($clauses);
     }
 
     /**
@@ -311,6 +396,19 @@ class Cypher
     {
         $keys = array_keys($this->aliases);
         return end($keys);
+    }
+
+    /**
+     * Get last alias index that was declared.
+     *
+     * @return string
+     */
+    private function lastAlias()
+    {
+        $keys = array_keys($this->aliases);
+        $key = end($keys);
+
+        return $this->aliases[$key];
     }
 
     /**

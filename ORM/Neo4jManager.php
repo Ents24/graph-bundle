@@ -69,13 +69,18 @@ class Neo4jManager
     {
         // the input can be a AdadgioGraphBundle\..\Cypher object or a native query string
         $nativeQuery = ($query instanceof Cypher) ? $query->getQuery() : $query;
-
         $cypher = new EverymanQuery($this->client, $nativeQuery, $params);
-        $this->result = $this->parse($cypher->getResultSet());
+
+        try {
+            $this->result = $this->parse($cypher->getResultSet());
+        } catch (\Everyman\Neo4j\Exception $e) {
+            throw new \Exception('Failed to execute "'.$nativeQuery.'"');
+            // throw new \Exception($e->getMessage());
+        }
 
         return $this;
     }
-
+    
     /**
      * Perform multiple queries via cypher transation(s).
      * Note that a transaction does not enabled returning results.
@@ -83,8 +88,17 @@ class Neo4jManager
      * @param  array Cypher querie(s) string(s)
      * @return object \Neo4jManager
      */
-    public function transaction(array $queries)
+    public function transaction($query)
     {
+        if ($query instanceof Cypher) {
+            $nativeQueries = array($query->getQuery());
+        } else if (is_string($query)) {
+            $nativeQueries = array($query->getQuery());
+        } else {
+            // else queries is a proper array
+            $nativeQueries = array($query);
+        }
+
         $transaction = $this->client->beginTransaction();
 
         foreach ($queries as $params => $query) {
@@ -93,11 +107,16 @@ class Neo4jManager
             );
         }
 
-        $result = $transaction->commit();
+        try {
+            $transaction->commit();
+        } catch (\Everyman\Neo4j\Exception $e) {
+            throw new \Exception($e->getMessage());
+            return $this;
+        }
 
         return $this;
     }
-    
+
     /**
      * Analyse a cypher query result set. There are two types of results
      * to analyze, node results of field results because "MATCH a" or
