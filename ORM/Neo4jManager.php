@@ -80,7 +80,7 @@ class Neo4jManager
 
         return $this;
     }
-    
+
     /**
      * Perform multiple queries via cypher transation(s).
      * Note that a transaction does not enabled returning results.
@@ -100,8 +100,8 @@ class Neo4jManager
         }
 
         $transaction = $this->client->beginTransaction();
-
-        foreach ($queries as $params => $query) {
+        
+        foreach ($nativeQueries as $params => $query) {
             $transaction->addStatements(
                 new EverymanQuery($this->client, $query, $params)
             );

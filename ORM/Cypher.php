@@ -153,7 +153,8 @@ class Cypher
         // but also DONT include the "MATCH" keyword when not new subpattern
         // is declared. Cypher accepts MATCH (a), (b) OR MATCH (a) MATCH (b) as patterns
         $keyword = (true === $optional) ? 'OPTIONAL '.$keyword : $keyword;
-
+        $label = Helper::normalizeLabelsToString($label);
+        
         // an alias with this name could exist. In this case we assume this
         // is a reuse of the varialbe from a previous match or declration
         if ($this->aliasExists($alias)) {
@@ -294,7 +295,7 @@ class Cypher
 
         return $this;
     }
-    
+
     /**
      * Joins matches string that are groupped together depending
      * taking into account joined or new patterns as well.

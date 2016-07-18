@@ -32,6 +32,17 @@ class Helper
     }
 
     /**
+     * Normalize labels into a string, because they could be passed as an array.
+     *
+     * @param  mixed  Labels ara array or string
+     * @return string Normalized labels string "Label1:Label2..."
+     */
+    public static function normalizeLabelsToString($labelsMixed)
+    {
+        return is_array($labelsMixed) ? self::labelsToString($labelsMixed) : $labelsMixed;
+    }
+
+    /**
      * Normalize a string colons notation by removing the first colon.
      *
      * @param string

@@ -6,7 +6,32 @@ use Doctrine\Common\Annotations\AnnotationReader;
 
 class GraphAnnotationReader
 {
-    public static function getAnnotations($entity)
+    public static function getClassAnnotations($entity)
+    {
+        $classAnnotation = null;
+        $reader = new AnnotationReader();
+
+        $reflectionClass = new \ReflectionClass($entity);
+        $annotationsFound = $reader->getClassAnnotations($reflectionClass);
+
+        foreach ($annotationsFound as $i => $annotation) {
+            if ($annotation instanceof \Adadgio\GraphBundle\Annotation\Graph) {
+                $classAnnotation = $annotation;
+                break;
+            }
+        }
+
+        // by default the label is the class name
+        // whenever and if no class annotations is found
+        if (null === $classAnnotation->getProperty('labels')) {
+            $classShortName = $reflectionClass->getShortName();
+            $classAnnotation = new \Adadgio\GraphBundle\Annotation\Graph(array('labels' => array($classShortName)));
+        }
+
+        return $classAnnotation;
+    }
+
+    public static function getPropertyAnnotations($entity)
     {
         $annotations = array();
         $reader = new AnnotationReader();
@@ -33,7 +58,7 @@ class GraphAnnotationReader
 
                     if ($presetValues['type'] && !$annotation->hasProperty('type')) { $annotations[$fieldName]->setProperty('type', $presetValues['type']); }
                     if ($presetValues['name'] && !$annotation->hasProperty('name')) { $annotations[$fieldName]->setProperty('name', $presetValues['name']); }
-                    
+
                     // register the field name as annotation object property (we will need it later)
                     $annotations[$fieldName]->setFieldName($fieldName);
 

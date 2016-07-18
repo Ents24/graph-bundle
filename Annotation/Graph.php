@@ -6,7 +6,7 @@ use Doctrine\Common\Annotations\Annotation;
 
 /**
  * @Annotation
- * @Target({"PROPERTY"})
+ * @Target({"CLASS", "PROPERTY"})
  */
 class Graph
 {
@@ -34,7 +34,7 @@ class Graph
             $this->properties[$key] = $value;
         }
     }
-    
+
     /**
      * Get entity field name on which the annotation is.
      *
@@ -74,7 +74,7 @@ class Graph
      *
      * @return mixed Property value
      */
-    public function getProperty()
+    public function getProperty($key)
     {
         return isset($this->properties[$key]) ? $this->properties[$key] : null;
     }

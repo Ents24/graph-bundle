@@ -37,7 +37,7 @@ class EntityEventListener
         $entity = $args->getEntity();
         $this->onUpdateOrPersist($entity);
     }
-    
+
     /**
      * Triggered on entity post update event.
      *
@@ -49,19 +49,25 @@ class EntityEventListener
         $entity = $args->getEntity();
         $this->onUpdateOrPersist($entity);
     }
-
+    
     /**
+     * Executes a neo4j query to sync the entity properties in the graph.
      *
      * @param  object A doctrine entity
      * @return
      */
     private function onUpdateOrPersist($entity)
     {
-        $annotations = GraphAnnotationReader::getAnnotations($entity);
+        $classAnnotations = GraphAnnotationReader::getClassAnnotations($entity);
+        $propertyAnnotations = GraphAnnotationReader::getPropertyAnnotations($entity);
 
-        // foreach annotation, create a simple query with the query builder
+        // defined the entity labels in the graph, properties and merge by criteria
         $properties = array();
-        foreach ($annotations as $field => $annotation) {
+        $labels = $classAnnotations->getProperty('labels');
+        $mergeBy = $classAnnotations->getProperty('mergeBy');
+
+        // foreach annotation, create a simple query with the query builder to set the properties
+        foreach ($propertyAnnotations as $field => $annotation) {
             // annotation is an instance of Adadgio\GraphBundle\Annotation\Graph
 
             $fieldName = $annotation->getFieldname();
@@ -70,12 +76,15 @@ class EntityEventListener
             $properties[$fieldName] = $entity->$get();
         }
 
-        debug($properties, true);
+        $mergeByGetter = self::guessGetter($mergeBy);
 
-        // build a merge query to update the entity properties in the graph
-        // $cypher = (new CYpher())
-        //     ->match()
-        //     ;
+        // get the entities to sync config
+        $cypher = (new Cypher())
+            ->merge('a', $labels, array($mergeBy => $entity->$mergeByGetter())) // depends on annotation, usualy getId()...
+            ->onCreateSet('a', $properties)
+            ->onMatchSet('a', $properties);
+
+        $this->neo4j->transaction($cypher);
     }
 
     /**
