@@ -83,3 +83,31 @@ $manager = $this
 ```
 
 ## Creating, setting, merging and deleting
+
+# Components
+
+## User components
+
+**Query builder**
+Help build Neo4j cypher queries in a convinient and secure way, just like an ORM would `$query = new (Cypher())->match(...)`.
+
+**Manager**
+Performs cypher queries, native queries or transactions (multiple queries) as in `$this->get('adadgio_graph.neo4j_manager')->cypher(\Cypher or native query)`
+
+## Backend components
+
+**GraphAnnotationReader**
+Reads class and property annotations from an entity to merge those properties into Neo4j graph nodes.
+
+```
+use Adadgio\GraphBundle\Annotation\Graph;
+
+/**
+ * @ORM\Column(type="string", length=64)
+ * @Graph(name="surname", type="string")
+ */
+private $surname;
+```
+
+**Graph**
+The annotation defining class, just getters and setters.
