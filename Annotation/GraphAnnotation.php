@@ -6,15 +6,21 @@ use Doctrine\Common\Annotations\Annotation;
 
 /**
  * @Annotation
- * @Target({"CLASS", "PROPERTY"})
+ * @Target({"CLASS","PROPERTY"})
  */
-class Graph
+class GraphAnnotation
 {
     /**
-     * @var array Properties keys and values.
+     * @var array Properties keys and values (defaults here).
      */
-    private $properties;
-
+    private $properties = array(
+        'name' => null,
+        'type' => null,
+        'labels' => array(),
+        'mergeBy' => null,
+        'constraints' => array(),
+    );
+    
     /**
      * @var array Entity field property name
      */
@@ -26,10 +32,8 @@ class Graph
      * @param array Annotations options
      * @return void
      */
-    public function __construct($options)
+    public function __construct(array $options = array())
     {
-        $this->properties = array();
-
         foreach($options as $key => $value) {
             $this->properties[$key] = $value;
         }

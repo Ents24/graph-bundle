@@ -2,30 +2,32 @@
 
 namespace Adadgio\GraphBundle\Annotation;
 
+use Symfony\Component\Finder\Finder;
 use Doctrine\Common\Annotations\AnnotationReader;
+use Adadgio\GraphBundle\Annotation\GraphAnnotation;
 
 class GraphAnnotationReader
 {
     public static function getClassAnnotations($entity)
     {
-        $classAnnotation = null;
         $reader = new AnnotationReader();
+        $classAnnotation = $classAnnotation = new GraphAnnotation();
 
         $reflectionClass = new \ReflectionClass($entity);
         $annotationsFound = $reader->getClassAnnotations($reflectionClass);
 
         foreach ($annotationsFound as $i => $annotation) {
-            if ($annotation instanceof \Adadgio\GraphBundle\Annotation\Graph) {
+            if ($annotation instanceof GraphAnnotation) {
                 $classAnnotation = $annotation;
                 break;
             }
         }
-
+        
         // by default the label is the class name
-        // whenever and if no class annotations is found
+        // whenever (and if) no class annotations is found
         if (null === $classAnnotation->getProperty('labels')) {
             $classShortName = $reflectionClass->getShortName();
-            $classAnnotation = new \Adadgio\GraphBundle\Annotation\Graph(array('labels' => array($classShortName)));
+            $classAnnotation = new GraphAnnotation(array('labels' => array($classShortName)));
         }
 
         return $classAnnotation;
@@ -53,7 +55,7 @@ class GraphAnnotationReader
                     if (isset($annotation->name)) { $presetValues['name'] = $annotation->name; }
                 }
 
-                if ($annotation instanceof \Adadgio\GraphBundle\Annotation\Graph) {
+                if ($annotation instanceof GraphAnnotation) {
                     $annotations[$fieldName] = $annotation;
 
                     if ($presetValues['type'] && !$annotation->hasProperty('type')) { $annotations[$fieldName]->setProperty('type', $presetValues['type']); }
@@ -68,5 +70,10 @@ class GraphAnnotationReader
         }
 
         return $annotations;
+    }
+
+    public function findEntitiesConstraints($directory)
+    {
+
     }
 }

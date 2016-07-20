@@ -48,12 +48,17 @@ class Cypher
     private $onMatchSet;
 
     /**
+     * @var array Create constraint/index statements.
+     */
+    private $index;
+
+    /**
      * @var array Matches already declared to be reused.
      */
     private $variableMatches;
 
     /**
-     *
+     * @var array Relationships statements
      */
     private $relationships;
 
@@ -75,6 +80,7 @@ class Cypher
         self::$alphabet = static::ALPHABET;
 
         $this->return = null;
+        $this->index = null;
         $this->matches = array();
         $this->merges = array();
         $this->onCreateSet = array();
@@ -125,6 +131,11 @@ class Cypher
             $query .= $this->return;
         }
 
+        // 8. Constraints, special query overrides everything
+        if (null !== $this->index) {
+            $query = $this->createIndexStatement($this->index);
+        }
+
         $this->query = $query;
 
         return $this;
@@ -154,7 +165,7 @@ class Cypher
         // is declared. Cypher accepts MATCH (a), (b) OR MATCH (a) MATCH (b) as patterns
         $keyword = (true === $optional) ? 'OPTIONAL '.$keyword : $keyword;
         $label = Helper::normalizeLabelsToString($label);
-        
+
         // an alias with this name could exist. In this case we assume this
         // is a reuse of the varialbe from a previous match or declration
         if ($this->aliasExists($alias)) {
@@ -265,6 +276,78 @@ class Cypher
     }
 
     /**
+     * Add a create an constraint statement.
+     *
+     * @param string Label string or name
+     * @return \Cypher
+     */
+    public function createConstraint($label, $property = null)
+    {
+        $this->index = array(
+            'keyword' => 'CREATE',
+            'unique' => true,
+            'label' => Helper::trimColons($label),
+            'property' => $property,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Add a create an index statement.
+     *
+     * @param string Label string or name
+     * @return \Cypher
+     */
+    public function createIndex($label, $property)
+    {
+        $this->index = array(
+            'keyword' => 'CREATE',
+            'unique' => false,
+            'label' => Helper::trimColons($label),
+            'property' => $property,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Drop an constraint statement.
+     *
+     * @param string Label string or name
+     * @return \Cypher
+     */
+    public function dropConstraint($label, $property = null)
+    {
+        $this->index = array(
+            'keyword' => 'DROP',
+            'unique' => true,
+            'label' => Helper::trimColons($label),
+            'property' => $property,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Drop an index statement.
+     *
+     * @param string Label string or name
+     * @return \Cypher
+     */
+    public function dropIndex($label, $property)
+    {
+        $this->index = array(
+            'keyword' => 'DROP',
+            'unique' => false,
+            'label' => Helper::trimColons($label),
+            'property' => $property,
+        );
+
+        return $this;
+    }
+
+    /**
      * Add on create set clause for merges.
      *
      * @param
@@ -322,7 +405,7 @@ class Cypher
 
         return $clauses[0]['keyword'].Helper::SPACE.Helper::subvalImplode($list);
     }
-
+    
     /**
      * Joins matches string that are groupped together depending
      * taking into account joined or new patterns as well.
@@ -332,6 +415,22 @@ class Cypher
     private function joinOnCreateOrUpdate(array $clauses, $onCreateOrUpdateKeyword)
     {
         return $onCreateOrUpdateKeyword.' SET'.Helper::SPACE.Helper::joinWithCommas($clauses);
+    }
+
+    /**
+     * Joins matches string that are groupped together depending
+     * taking into account joined or new patterns as well.
+     *
+     * @return string
+     */
+    private function createIndexStatement(array $index)
+    {
+        if (true === $index['unique']) {
+            return sprintf('%s CONSTRAINT ON (a:%s) ASSERT a.%s IS UNIQUE', $index['keyword'], $index['label'], $index['property']);
+        } else {
+            // normal index creation
+            return sprintf('%s INDEX ON :%s(%s)', $index['keyword'], $index['label'], $index['property']);
+        }
     }
 
     /**

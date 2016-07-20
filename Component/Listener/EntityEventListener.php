@@ -49,7 +49,7 @@ class EntityEventListener
         $entity = $args->getEntity();
         $this->onUpdateOrPersist($entity);
     }
-    
+
     /**
      * Executes a neo4j query to sync the entity properties in the graph.
      *
@@ -68,8 +68,8 @@ class EntityEventListener
 
         // foreach annotation, create a simple query with the query builder to set the properties
         foreach ($propertyAnnotations as $field => $annotation) {
-            // annotation is an instance of Adadgio\GraphBundle\Annotation\Graph
-
+            // annotation is an instance of Adadgio\GraphBundle\Annotation\GraphAnnotation
+            
             $fieldName = $annotation->getFieldname();
 
             $get = self::guessGetter($fieldName);

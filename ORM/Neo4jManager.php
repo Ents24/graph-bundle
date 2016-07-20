@@ -94,13 +94,17 @@ class Neo4jManager
             $nativeQueries = array($query->getQuery());
         } else if (is_string($query)) {
             $nativeQueries = array($query->getQuery());
+        } else if (is_array($query)) {
+            $nativeQueries = array();
+            foreach ($query as $q) {
+                $nativeQueries[] = ($q instanceof Cypher) ? $q->getQuery() : $q;
+            }
         } else {
-            // else queries is a proper array
             $nativeQueries = array($query);
         }
-
-        $transaction = $this->client->beginTransaction();
         
+        $transaction = $this->client->beginTransaction();
+
         foreach ($nativeQueries as $params => $query) {
             $transaction->addStatements(
                 new EverymanQuery($this->client, $query, $params)
