@@ -128,7 +128,7 @@ class CypherTest extends \PHPUnit_Framework_TestCase
                 ->setParameter('truc', 'Ben Afflict')
                 ->setParameter('id', 15)
             ->getQuery();
-            
+
         $this->results = array(
             'MATCH (d:Document {id: 5}), (p:Profession)',
             'MATCH (d:Document {id: 5}) OPTIONAL MATCH (p:Profession)',
