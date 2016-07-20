@@ -195,7 +195,7 @@ class Helper
         foreach($array as $key => $value) {
             $string .= $value[0].$value[1];
         }
-
+        
         return trim(trim(trim($string, ',')), ',');
     }
 

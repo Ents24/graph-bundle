@@ -33,6 +33,21 @@ class Cypher
     private $matches;
 
     /**
+     * @var array With aliases
+     */
+    private $with;
+
+    /**
+     * @var array Where conditions
+     */
+    private $where;
+
+    /**
+     * @var array Where parameters
+     */
+    private $parameters;
+
+    /**
      * @var array Merges, a multidimentional array of merges
      */
     private $merges;
@@ -83,6 +98,8 @@ class Cypher
         $this->index = null;
         $this->matches = array();
         $this->merges = array();
+        $this->where = array();
+        $this->parameters = array();
         $this->onCreateSet = array();
         $this->onMatchSet = array();
         $this->aliases = array();
@@ -124,6 +141,11 @@ class Cypher
         // 4. Create merges query string when applicable
         if (!empty($this->onMatchSet)) {
             $query .= Helper::SPACE.$this->joinOnCreateOrUpdate($this->onMatchSet, 'ON MATCH');
+        }
+
+        // 5. Create where clauses
+        if (!empty($this->where)) {
+            $query .= Helper::SPACE.$this->joinWhere($this->where);
         }
 
         // 7. Add return statement when applicable
@@ -262,6 +284,73 @@ class Cypher
     }
 
     /**
+     * Add a "with" pattern statement.
+     *
+     * @param string Aliases
+     * @return \Cypher
+     */
+    public function with($aliases)
+    {
+        $index = $this->matchesNumericIndex();
+        $this->with[$index] = $aliases;
+
+        return $this;
+    }
+
+    /**
+     * Set a where parameter.
+     *
+     * @param string Parameter key
+     * @param string Parameter value
+     * @return \Cypher
+     */
+    public function setParameter($key, $value)
+    {
+        $this->parameters[$key] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Add a where condition.
+     *
+     * @param string Where condition doctrine style
+     * @return \Cypher
+     */
+    public function where($criterium, $keyword = null)
+    {
+        $this->where[] = array(
+            'keyword' => $keyword,
+            'criterium' => $criterium,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Add a where condition.
+     *
+     * @param string Where condition doctrine style
+     * @return \Cypher
+     */
+    public function andWhere($criterium)
+    {
+        $keyword = (count($this->where) === 0) ? null : 'AND';
+        return $this->where($criterium, $keyword);
+    }
+
+    /**
+     * Add a or where condition.
+     *
+     * @param string Where condition doctrine style
+     * @return \Cypher
+     */
+    public function orWhere($criterium)
+    {
+        return $this->where($criterium, 'OR');
+    }
+
+    /**
      * Set the beginning of a new match pattern, which will have
      * the effect of not separating the next match with a comma but a space.
      *
@@ -391,6 +480,7 @@ class Cypher
         // when a new pattern is needed at a precise index, otherwise
         // matches are chained because they belong to the same pattern
         $list = array();
+        $noCommasAt = null;
 
         foreach ($clauses as $index => $match) {
             $keyword = $match['keyword'];
@@ -401,11 +491,38 @@ class Cypher
             } else {
                 $list[] = array(Helper::COMMA, $match['stmt']);
             }
+
+            if (isset($this->with[$index])) {
+                $noCommasAt = $index + 2;
+                $list[] = array(Helper::SPACE, 'WITH '.$this->with[$index]);
+            }
+        }
+
+        // modify next statment after the "WITH" (no comma in syntax)
+        if (null !== $noCommasAt && isset($list[$noCommasAt])) {
+            $list[$noCommasAt][0] = Helper::SPACE;
         }
 
         return $clauses[0]['keyword'].Helper::SPACE.Helper::subvalImplode($list);
     }
-    
+
+    /**
+     * Joins where conditions together.
+     *
+     * @param  array  Where conditions
+     * @return string Where statement
+     */
+    public function joinWhere(array $clauses)
+    {
+        $list = array();
+
+        foreach ($clauses as $index => $where) {
+            $list[] = array(Helper::SPACE.$where['keyword'].Helper::SPACE, $where['criterium']);
+        }
+
+        return 'WHERE'.Helper::SPACE.Helper::subvalImplode($list);
+    }
+
     /**
      * Joins matches string that are groupped together depending
      * taking into account joined or new patterns as well.
@@ -562,5 +679,15 @@ class Cypher
         $this->aliases[] = $alias;
 
         return $this;
+    }
+
+    /**
+     * Return the current matches numeric index.
+     *
+     * @return integer
+     */
+    private function matchesNumericIndex()
+    {
+        return count($this->matches) - 1;
     }
 }
