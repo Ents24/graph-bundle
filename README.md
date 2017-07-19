@@ -9,7 +9,7 @@ I needed a Cypher query builder and liked this one, but without all the Symfony 
 
 Install with composer:
 
-`composer require ents24/neo4j-query-builder-php`
+`composer require ents24/neo4j-query-builder-php:dev-master`
 
 # Usage Examples
 
