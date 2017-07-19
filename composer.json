@@ -1,5 +1,5 @@
 {
-    "name": "Ents24/neo4j-query-builder-php",
+    "name": "ents24/neo4j-query-builder-php",
     "type": "library",
     "description": "Cypher query builder for PHP",
     "license": "MIT",
