@@ -18,7 +18,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Adadgio\\GraphBundle\\ORM": "ORM/"
+            "Adadgio\\GraphBundle\\ORM\\": "ORM/"
         }
     }
 }
