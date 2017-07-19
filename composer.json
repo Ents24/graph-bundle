@@ -1,21 +1,19 @@
 {
-    "name": "adadgio/graph-bundle",
-    "type": "symfony-bundle",
-    "description": "Adadgio GraphBundle",
+    "name": "Ents24/neo4j-query-builder-php",
+    "type": "library",
+    "description": "Cypher query builder for PHP",
     "license": "MIT",
     "authors": [
         {
             "name": "Romain BRUCKERT",
             "email": "romain.bruckert.esc@gmail.com"
+        },
+        {
+            "name": "Mark WOOD",
+            "email": "mark.wood@ents24.com"
         }
     ],
     "require": {
-        "php": ">=5.3",
-        "symfony/symfony": "^2.7|^3.0",
-        "everyman/neo4jphp": "dev-master"
-    },
-    "autoload": {
-        "psr-0": { "Adadgio\\HealthBundle\\": "" },
-        "psr-4": { "Adadgio\\HealthBundle\\": "" }
+        "php": ">=5.3"
     }
 }
